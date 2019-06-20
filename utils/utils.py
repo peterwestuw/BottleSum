@@ -222,12 +222,18 @@ def get_expansions(S1_list, rem_words, consecutive = False,tok_method = 'split',
     return expansions_list
     
 
-def get_padded_S1_S2(S1_list, S2, tokenizer, pad_idx = 0, bos = ' '): #, tok_method = 'split'):
+def get_padded_S1_S2(S1_list, S2, tokenizer, pad_idx = 0, bos = '.',
+        prepend_space=True, insert_newline=False): #, tok_method = 'split'):
     '''
     This takes a list of candidates for S1_ (a list of strings)
     '''
 
-    S2_bpe = tokenizer.encode(S2)
+    if insert_newline: 
+        S2_bpe = tokenizer.encode('\n' + S2.strip())
+    elif prepend_space: 
+        S2_bpe = tokenizer.encode(' ' + S2.strip())
+    else:
+        S2_bpe = tokenizer.encode(S2.strip())
     S1_bpe_prefix = tokenizer.encode(bos)
     
     assert(len(S1_bpe_prefix) == 1) # this should only be 1 bpe token 
@@ -238,7 +244,10 @@ def get_padded_S1_S2(S1_list, S2, tokenizer, pad_idx = 0, bos = ' '): #, tok_met
     # note, we token_split and token_join each candidate to make sure 
     # its format is correct (may not directly map)
 
-    list_S1_bpe = [S1_bpe_prefix + tokenizer.encode(S1_) for S1_ in list_S1_]
+    if prepend_space: 
+        list_S1_bpe = [S1_bpe_prefix + tokenizer.encode(' ' + S1_.strip()) for S1_ in list_S1_]
+    else:
+        list_S1_bpe = [S1_bpe_prefix + tokenizer.encode(S1_.strip()) for S1_ in list_S1_]
     
     list_S1_bpe_lens = [len(S1_) for S1_ in list_S1_bpe]
     list_total_seqs = [S1_ + S2_bpe for S1_ in list_S1_bpe]

@@ -37,7 +37,7 @@ def get_scores_(X, model): # get unaggregated, word-by-word CE over X
         
         return scores
 
-def get_CE_scores(S1_list, S2, tokenizer, model, max_tokens_batch): #, tok_method = 'split'):
+def get_CE_scores(S1_list, S2, tokenizer, model, max_tokens_batch, headline_generation=False): #, tok_method = 'split'):
     '''
     This funciton takes:
         S1_list: a list of candidate summaries of true S1
@@ -51,7 +51,11 @@ def get_CE_scores(S1_list, S2, tokenizer, model, max_tokens_batch): #, tok_metho
     S1_ as a prefix.        
     '''
 
-    X, mask = utils.get_padded_S1_S2(S1_list, S2, tokenizer, bos=' ') #,tok_method = tok_method)
+    if headline_generation:
+        X, mask = utils.get_padded_S1_S2(S1_list, S2, tokenizer, bos='\n', prepend_space=False, insert_newline=True) 
+    else:
+        X, mask = utils.get_padded_S1_S2(S1_list, S2, tokenizer, bos='.') 
+    #,tok_method = tok_method) #TODO parameterize newline option
     
 
     ## Entirety of every sample must fit in the context window 

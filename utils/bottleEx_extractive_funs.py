@@ -42,6 +42,7 @@ def elimination_beam_search(S1, S2, # input sentences
                             max_tokens_batch = 20000, # based on GPU memory, for efficiency
                             model = None,
                             tokenizer = None,
+                            headline_generation = False,
                             min_words = 1, # minimum generation length
                             window = None, # window in which to consider deletions (for long sentence efficiency)
                             parent_version = 'min'):
@@ -78,14 +79,14 @@ def elimination_beam_search(S1, S2, # input sentences
     ##
     # Define stuff needed for scoring function(s)
     ##
-    
+    #TODO Should be using GPT2 tokenization directly and not retokenize at every elimination iteration
+
     S1split = utils.token_split(S1, method =tok_method)
 
     # make sure cannonical S1 is in line with detokenization    
     S1 = utils.token_join(S1split, method=tok_method, autocap = autocap)
 
-
-    S1_score, S2_score = get_CE_scores([S1], S2, tokenizer, model, max_tokens_batch) #, tok_method = tok_method)
+    S1_score, S2_score = get_CE_scores([S1], S2, tokenizer, model, max_tokens_batch, headline_generation=headline_generation) #, tok_method = tok_method)
     score_S1_og = S1_score[0] # need these for the filter function later
     score_S2_og = S2_score[0]
     og = {'S1_':S1 , 'split_S1_': S1split,
@@ -137,7 +138,7 @@ def elimination_beam_search(S1, S2, # input sentences
         candidates = [utils.token_join(candidate, method = tok_method, autocap = autocap) for candidate in candidates_split] # get this as strings
         
         # get scores for candidates
-        S1_scores, S2_scores = get_CE_scores(candidates, S2, tokenizer, model, max_tokens_batch) #, tok_method = tok_method) 
+        S1_scores, S2_scores = get_CE_scores(candidates, S2, tokenizer, model, max_tokens_batch, headline_generation=headline_generation) #, tok_method = tok_method) 
 
         # this will hold the scoring dicts for the candidates
         candidates_dict = []
@@ -199,7 +200,7 @@ def elimination_beam_search(S1, S2, # input sentences
         expansions_split = []
         
         for k_, topk in enumerate(topk_list):
-            expansions_split_iter = utils.get_expansions([topk_list[k_]], rem_words, consecutive = True, tok_method = tok_method, window = window)
+            expansions_split_iter = utils.get_expansions([topk_list[k_]], rem_words, consecutive = True, tok_method = tok_method, window = window) # tok_method not actually used
             expansions_split += expansions_split_iter
             
             for expansion in expansions_split_iter:     

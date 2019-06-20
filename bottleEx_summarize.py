@@ -14,8 +14,6 @@ from pytorch_pretrained_bert import GPT2Tokenizer, GPT2LMHeadModel
 
 
 
-        
-    
 
 
 
@@ -23,13 +21,15 @@ def main():
     ''' Main function '''
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-path_tsv', type=str, default = '') # path to tsv input
     parser.add_argument('-S1_path', type=str,default = '') # path to S1s (by line)
     parser.add_argument('-S2_path', type=str,default = '') # path to S2s (by line)
-    
     
     parser.add_argument('-out_name', type=str, default = '') # name of file to output summaries to
     parser.add_argument('-max_tokens_batch',type=int, default=20000) # max tokens to process per batch (depends on mem)
     parser.add_argument('-start',type=int, default=0) # first example to process (offset)
+    parser.add_argument('-headline_generation', action='store_true')
+    
     parser.add_argument('-log_interval', type = int, default = 50)
     parser.add_argument('-window', type = int, default = 50) # window in which to carry out deletions (for very long S1)
     
@@ -39,8 +39,8 @@ def main():
     
     parser.add_argument('-lowercase', action='store_true')
 
+
     opt = parser.parse_args()
-    
     
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
     model = GPT2LMHeadModel.from_pretrained('gpt2').to('cuda')
@@ -56,14 +56,22 @@ def main():
     examples_S1 = []
     examples_S2 = []
     
-    with open(opt.S1_path,'r') as f_s1, open(opt.S2_path,'r') as f_s2:
-        for line in f_s1.readlines():
-            examples_S1 += [line.rstrip()]
+    if opt.path_tsv != '':
+        with open(opt.path_tsv,'r') as f:
+            for line in f:
+                cols = line.strip().split('\t')
+                assert len(cols) == 3
+                examples_S1 += [cols[1].strip()]
+                examples_S2 += [cols[2].strip()]
+    else:
+        with open(opt.S1_path,'r') as f_s1, open(opt.S2_path,'r') as f_s2:
+            for line in f_s1.readlines():
+                examples_S1 += [line.rstrip()]
 
-        for line in f_s2.readlines():
-            examples_S2 += [line.rstrip()]
-            
-        assert(len(examples_S1) == len(examples_S2))
+            for line in f_s2.readlines():
+                examples_S2 += [line.rstrip()]
+                
+            assert(len(examples_S1) == len(examples_S2))
     examples = list(zip(examples_S1, examples_S2))
         
     
@@ -95,19 +103,21 @@ def main():
                             window = opt.window,
                             model = model,
                             tokenizer = tokenizer,
+                            headline_generation = opt.headline_generation,
                             min_words = opt.min_words)
         
         # process output summary
         out_summ = result[1]['S1_']
         if opt.lowercase:
             out_summ = out_summ.lower()
-        out_str += '{}\n'.format(out_summ)
+        
+        out_str += '{}\t{}\t{}\n'.format(out_summ, S1, S2)
 
         count += 1
 
     # save all summaries at the end
     with open(opt.out_name, 'w') as f:
-        f.write(out_str)            
+        f.write(out_str)
 
 if __name__ == '__main__':
     main()
