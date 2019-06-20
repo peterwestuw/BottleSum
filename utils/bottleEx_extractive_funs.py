@@ -23,10 +23,12 @@ lower )
 
 from pytorch_pretrained_bert import GPT2Tokenizer, GPT2LMHeadModel
 
-#from utils import get_padded_subseqs, test_subseqs
-import utils.utils
-
 from utils.beam_scoring import get_CE_scores
+
+#from utils import get_padded_subseqs, test_subseqs
+import utils.utils as utils
+
+
 
 # flatten a 1-level nested list
 flatten = lambda l : [y for x in l for y in x]
