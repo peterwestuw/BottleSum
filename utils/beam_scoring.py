@@ -9,7 +9,7 @@ Created on Wed Apr 10 14:57:42 2019
 import torch 
 
 #from utils import get_padded_subseqs, test_subseqs
-import utils
+import utils.utils
 
 flatten = lambda l : [y for x in l for y in x]
 
