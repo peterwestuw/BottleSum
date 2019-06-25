@@ -246,7 +246,7 @@ def sample_sequence(model, length,args, start_token=None, batch_size=None, conte
     if sample_v == 'og': # sampling as in the original script
         return sample_sequence_og(model, length,args, start_token=start_token, batch_size=batch_size, context=context, temperature=temperature, top_k=top_k, device=device, sample=sample)
     if sample_v == 'top_p':
-        return sample_sequence_og(model, length,args, start_token=start_token, batch_size=batch_size, context=context, temperature=temperature, top_p=args.top_p, device=device, sample=sample)
+        return sample_sequence_nucleus(model, length,args, start_token=start_token, batch_size=batch_size, context=context, temperature=temperature, top_p=args.top_p, device=device, sample=sample)
     elif sample_v == 'beam': 
         return sample_sequence_beam(model, length, args, start_token, batch_size, context, temperature, top_k, device, sample, beam_size, tokenizer, max_len = max_len,min_len = min_len)
     else: 
