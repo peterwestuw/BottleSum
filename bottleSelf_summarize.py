@@ -63,6 +63,25 @@ def top_k_logits(logits, k):
         return torch.where(logits < batch_mins, torch.ones_like(logits) * -1e10, logits)
 
 
+def top_p_logits(logits,p):
+    """
+    Masks everything but the logits that cover the top-p probability mass
+    
+    !!! plan: do sm, sort p's by descending size, do cumsum, get index 
+    of where we cross p, use that index to get batch mins
+    """
+    sm = torch.nn.Softmax(dim=0)
+    probs = sm(logits.view(-1))
+    
+    A_sort, sort_inds = probs.sort(descending = True)
+    
+    cs = A_sort.cumsum(dim=0)
+    mask_inds = sort_inds[cs > p]
+    
+    probs[mask_inds] = -1e10
+    return probs
+
+
 
 def sample_sequence_og(model, length,args, start_token=None, batch_size=None, context=None, temperature=1, top_k=0, device='cuda', sample=True):
     if start_token is None:
@@ -79,6 +98,30 @@ def sample_sequence_og(model, length,args, start_token=None, batch_size=None, co
             logits, past = model(prev, past=past)
             logits = logits[:, -1, :] / temperature
             logits = top_k_logits(logits, k=top_k)
+            log_probs = F.softmax(logits, dim=-1)
+            if sample:
+                prev = torch.multinomial(log_probs, num_samples=1)
+            else:
+                _, prev = torch.topk(log_probs, k=1, dim=-1)
+            output = torch.cat((output, prev), dim=1)
+    return output
+
+
+def sample_sequence_nucleus(model, length,args, start_token=None, batch_size=None, context=None, temperature=1, top_p=1.0, device='cuda', sample=True):
+    if start_token is None:
+        assert context is not None, 'Specify exactly one of start_token and context!'
+        context = torch.tensor(context, device=device, dtype=torch.long).unsqueeze(0).repeat(batch_size, 1)
+    else:
+        assert context is None, 'Specify exactly one of start_token and context!'
+        context = torch.full((batch_size, 1), start_token, device=device, dtype=torch.long)
+    prev = context
+    output = context
+    past = None
+    with torch.no_grad():
+        for i in trange(length):
+            logits, past = model(prev, past=past)
+            logits = logits[:, -1, :] / temperature
+            logits = top_p_logits(logits, p=top_p)
             log_probs = F.softmax(logits, dim=-1)
             if sample:
                 prev = torch.multinomial(log_probs, num_samples=1)
@@ -202,6 +245,8 @@ def sample_sequence(model, length,args, start_token=None, batch_size=None, conte
     
     if sample_v == 'og': # sampling as in the original script
         return sample_sequence_og(model, length,args, start_token=start_token, batch_size=batch_size, context=context, temperature=temperature, top_k=top_k, device=device, sample=sample)
+    if sample_v == 'top_p':
+        return sample_sequence_og(model, length,args, start_token=start_token, batch_size=batch_size, context=context, temperature=temperature, top_p=args.top_p, device=device, sample=sample)
     elif sample_v == 'beam': 
         return sample_sequence_beam(model, length, args, start_token, batch_size, context, temperature, top_k, device, sample, beam_size, tokenizer, max_len = max_len,min_len = min_len)
     else: 
@@ -335,6 +380,8 @@ def main():
     parser.add_argument('--sample_v',type=str, default='beam')
     parser.add_argument('--beam_size',type=int, default=1)
     parser.add_argument('--min_len',type=int, default=-1)
+    
+    parser.add_argument('--top_p',type=float, default=0.9)
     
 
     args = parser.parse_args()
