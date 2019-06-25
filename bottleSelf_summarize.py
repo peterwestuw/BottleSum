@@ -79,7 +79,7 @@ def top_p_logits(logits,p):
     mask_inds = sort_inds[cs > p]
     
     probs[mask_inds] = -1e10
-    return probs
+    return probs.view(1,1,1)
 
 
 
