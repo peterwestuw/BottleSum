@@ -70,6 +70,8 @@ def top_p_logits(logits,p):
     !!! plan: do sm, sort p's by descending size, do cumsum, get index 
     of where we cross p, use that index to get batch mins
     """
+    
+    # FIGURE OUT DIMENSIONS OF THIS
     sm = torch.nn.Softmax(dim=0)
     probs = sm(logits.view(-1))
     
@@ -79,7 +81,7 @@ def top_p_logits(logits,p):
     mask_inds = sort_inds[cs > p]
     
     probs[mask_inds] = -1e10
-    return probs.view(1,1,1)
+    return probs.view(1,1,-1)
 
 
 
