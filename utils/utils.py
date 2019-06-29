@@ -12,19 +12,30 @@ from os import listdir
 from random import shuffle
 from nltk.tokenize import sent_tokenize
 from sacremoses import MosesTokenizer, MosesDetokenizer
+from gpt2_token_mod import gpt2_split, gpt2_join
+from pytorch_pretrained_bert import GPT2Tokenizer
 
 mt = MosesTokenizer()
-mdt = MosesDetokenizer()
+mdt = MosesDetokenizer()    
 punctuation = ".,:;\"\'"
 
+global_tokenizer = None
 
-def token_split(s, method = 'split'):
+def token_split(s, method = 'split', tokenizer = None):
     ''' Given a string s, tokenize '''
     if method == 'split':
         return s.split()
     if method == 'moses':
         tokenized_text = mt.tokenize(s, return_str=True)
         return tokenized_text.split()
+    if method == 'gpt2':
+        if tokenizer is None:
+            global global_tokenizer
+            if global_tokenizer is None:
+                global_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+            tokenizer = global_tokenizer
+        return gpt2_split(tokenizer, s)
+    
     assert(False)
         
 def token_join(list_s, method = 'split', s1 = None, autocap = True):
@@ -52,6 +63,9 @@ def token_join(list_s, method = 'split', s1 = None, autocap = True):
         return ''.join(word + ' ' for word in list_s)
     if method == 'moses':
         return mdt.detokenize(list_s,return_str=True)
+    if method == 'gpt2':
+        return gp2_join(list_s)
+    
     assert(False)
 
 def get_sublists(original, min_len = None, max_len = None, only_consec = False):
