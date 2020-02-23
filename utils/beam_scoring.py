@@ -10,6 +10,8 @@ import torch
 
 #from utils import get_padded_subseqs, test_subseqs
 import utils.utils as utils
+from pytorch_pretrained_bert import GPT2Tokenizer
+
 
 flatten = lambda l : [y for x in l for y in x]
 
@@ -37,7 +39,38 @@ def get_scores_(X, model): # get unaggregated, word-by-word CE over X
         
         return scores
 
-def get_CE_scores(S1_list, S2, tokenizer, model, max_tokens_batch): #, tok_method = 'split'):
+
+def get_CE_scores(S1_list, S2, tokenizer, model, max_tokens_batch, version = 0):
+    if version == 0:
+        return get_CE_scores_0(S1_list, S2, tokenizer, model, max_tokens_batch)
+    elif version == 1:
+        return get_CE_scores_1(S1_list, S2, tokenizer, model, max_tokens_batch)
+
+def get_CE_scores_1(S1_list, S2, tokenizer, model, max_tokens_batch):
+    
+    # tokenize S1 sentences
+    S1_list = [tokenizer.encode(S1) for S1 in S1_list]
+    
+    # S2 list just repeats S2
+    S2 = tokenizer.encode(S2)
+    S2_list = [S2]*len(S1_list)
+    
+    
+    # to control for memory issues, limit the number of tokens-per-batch
+    batch_size = int(max_tokens_batch/(max([len(S1) for S1 in S1_list]) + len( S2) ) )
+    n_batches = int((X.shape[0] -1)/batch_size ) + 1
+    
+    # get conditional S2 scores 
+    S2_scores = get_CE_list(model, S1_list, S2_list, batch=n_batches, red = True)
+    
+    # get unconditional S1 scores
+    S1_Scores = get_CE_list(model, [tokenizer.encode(' ')]*len(S1_list), S1_list, batch=n_batches, red = True)
+    
+    
+    return S1_scores, S2_scores
+    
+
+def get_CE_scores_0(S1_list, S2, tokenizer, model, max_tokens_batch): #, tok_method = 'split'):
     '''
     This funciton takes:
         S1_list: a list of candidate summaries of true S1

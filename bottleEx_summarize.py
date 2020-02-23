@@ -38,6 +38,8 @@ def main():
     parser.add_argument('-min_words', type=int, default = 1) # minimum number of words to include in a summary
     
     parser.add_argument('-lowercase', action='store_true')
+    
+    parser.add_argument('-score_version', type=int, default = 0) # version of CE_scoring to use (0 or 1)
 
     opt = parser.parse_args()
     
@@ -95,7 +97,8 @@ def main():
                             window = opt.window,
                             model = model,
                             tokenizer = tokenizer,
-                            min_words = opt.min_words)
+                            min_words = opt.min_words,
+                            score_version = opt.score_version)
         
         # process output summary
         out_summ = result[1]['S1_']
