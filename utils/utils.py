@@ -340,3 +340,106 @@ def get_cnn_split(split): # as in the original cnn dailymail paper
     
     output = ['data/cnn/stories/' + line.strip() for line in lines]
     return output
+
+CE_nored = torch.nn.CrossEntropyLoss(reduction='none') 
+
+def get_CE_list(model, contexts, targets, back = False, batch=False, red = True):
+    ''' 
+    This gets the cross-entropy loss for the target sequences given the context sequences
+    
+    e.g. calling this with
+    contexts = [X_0, X_1, X_2, X_3, ...]
+    targets = [Y_0, Y_1, Y_2, Y_3, ...]
+    
+    returns 
+    
+    [-log( P(Y_0|X_0))  , -log( P(Y_1|X_1))   ] ...
+    
+    The purpose is to automatically handle a series of different length
+    sequences of contexts and targets in large, batched matrices 
+    
+    Inputs:
+        model: pytorch model to use (for now, should be a gpt2 version)
+        contexts: list of lists of tokens [X_0, ... ,X_i, ... ] where X_i
+          is the list of context tokens for context/target pair i
+        targets: list of lists of tokens [Y_0, ... ,Y_i, ... ] where Y_i
+          is the list of target tokens for context/target pair i
+        back: whether or not the model is a forward or backward language
+          model (this should typically be False)
+        batch: False, or batch size
+        red: whether to return a list of cross entropies (above) or a list 
+          of lists (see reduction for torch CrossEntropyLoss for analogous options)
+    
+    '''    
+            
+    
+    torch.cuda.empty_cache()
+    device = model.transformer.wte.weight.device
+    
+    # contexts and targets should be same size!
+    assert(len(contexts) == len(targets))
+    
+    
+    
+    if batch:
+        # if batching, might sort by length to speed up transformer by not doing much padding
+        
+        
+        ce_list = []
+        while len(contexts) > 0:
+            ce_list += get_CE_list(model, contexts[:batch], targets[:batch], back = back, batch=False, red=red)
+            contexts = contexts[batch:]
+            targets = targets[batch:]
+        return ce_list
+    
+    
+    # get number of sequences and max length
+    n_seqs = len(contexts)
+    max_len = max([len(context + target) for context,target in zip(contexts, targets) ] )
+    
+    
+    # initialize inputs
+    inp = torch.zeros((n_seqs, max_len)).long()
+    
+    target_mask = torch.zeros((n_seqs, max_len))
+    
+    # construct input matrix
+    for i in range(n_seqs):
+        context, target = contexts[i], targets[i]
+        
+        # reverse seqs if going backwards
+        if back:
+            context = context[::-1]
+            target = target[::-1]
+        
+        # set values in input for this sequence
+        inp[i, :len(context)] = torch.tensor(context).long()
+        inp[i, len(context): len(context) + len(target) ] = torch.tensor(target).long()
+        
+        # mask is 1 where inp is the target
+        target_mask[i, len(context): len(context) + len(target)] = 1
+    
+        
+    logits = model(inp.to(device))[0]
+    # trim last logit
+    logits = logits[:,:-1]
+    logits_shape = logits.shape
+    
+    targ = inp[:,1:].cpu().contiguous()
+    targ_mask = target_mask[:,1:]
+    
+    #print(logits.cpu().view(-1).shape)
+    #print(targ.view(-1).shape)
+    ce_mat = CE_nored(logits.cpu().contiguous().view(-1, logits_shape[-1]), targ.view(-1))
+    
+    ce_mat = ce_mat.view(logits_shape[:-1])
+    
+    # if reducing (i.e. sum along target)
+    if red:
+        ce_list = (ce_mat*targ_mask).sum(dim=1)
+        return ce_list.cpu().tolist()
+    else:
+        out_list = []
+        for i in range(n_seqs):
+            out_list += [ ce_mat[i, targ_mask[i,:] == 1].tolist()[::-1] ]
+        return out_list
