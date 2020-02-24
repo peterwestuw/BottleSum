@@ -54,7 +54,7 @@ def get_CE_scores_1(S1_list, S2, tokenizer, model, max_tokens_batch):
     
     # S2 list just repeats S2
     S2 = tokenizer.encode(S2)
-    S2_list = [S2]*len(S1_list)
+    S2_list = [[S2]]*len(S1_list)
     
     
     # to control for memory issues, limit the number of tokens-per-batch
