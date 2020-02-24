@@ -62,6 +62,7 @@ def get_CE_scores_1(S1_list, S2, tokenizer, model, max_tokens_batch):
     n_batches = int((len(S1_list) -1)/batch_size ) + 1
     
     print('n_batches: {}, total_size {}'.format(n_batches, len(S1_list)))
+    print('in size: {}'.format(max([len(S1) for S1 in S1_list]) + len( S2) ))
     # get conditional S2 scores 
     S2_scores = get_CE_list(model, S1_list, S2_list, batch=n_batches, red = True)
     
@@ -88,7 +89,7 @@ def get_CE_scores_0(S1_list, S2, tokenizer, model, max_tokens_batch): #, tok_met
 
     X, mask = utils.get_padded_S1_S2(S1_list, S2, tokenizer, bos=' ') #,tok_method = tok_method)
     
-
+    print('size X {}'.format(X.shape))
     ## Entirety of every sample must fit in the context window 
     assert(X.shape[1] < 1024)
      
