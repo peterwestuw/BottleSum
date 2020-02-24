@@ -10,7 +10,7 @@ import torch
 
 #from utils import get_padded_subseqs, test_subseqs
 import utils.utils as utils
-from untils.utils import get_CE_list
+from utils.utils import get_CE_list
 from pytorch_pretrained_bert import GPT2Tokenizer
 
 
