@@ -61,6 +61,7 @@ def get_CE_scores_1(S1_list, S2, tokenizer, model, max_tokens_batch):
     batch_size = int(max_tokens_batch/(max([len(S1) for S1 in S1_list]) + len( S2) ) )
     n_batches = int((len(S1_list) -1)/batch_size ) + 1
     
+    print('n_batches: {}, total_size {}'.format(n_batches, len(S1_list)))
     # get conditional S2 scores 
     S2_scores = get_CE_list(model, S1_list, S2_list, batch=n_batches, red = True)
     
