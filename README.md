@@ -2,9 +2,10 @@
 
 Code for "BottleSum: Self-Supervised and Unsupervised Sentence Summarization using the Information Bottleneck Principle"
 
+
 ## Simple
 
-compatibility:
+####compatibility:
 ```
 pytorch 0.4 
 pytorch-pretrained-bert
@@ -12,6 +13,18 @@ sacremoses
 nltk
 tqdm
 ```
+
+#### Precomputed outputs:
+
+If your main goal is to compare model outputs, we have example
+outputs from the DUC datasets and CNN/DM in the outputs directory.
+
+For CNN dailymail, we include the model inputs.
+For DUC datasets, order of outputs corresponds to the DUC data (we do not make this available.
+
+#### Temporary code instructions:
+
+Note: We are still working on improving this section.
 
 To run bottleSumEx with the same settings as in the paper
 
